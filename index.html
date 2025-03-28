@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PawPaw Bojong Run - Easy Mode</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #cce7ff;
+            text-align: center;
+        }
+        canvas {
+            display: block;
+            margin: auto;
+        }
+        #restartButton {
+            display: none;
+            padding: 10px 20px;
+            font-size: 20px;
+            background-color: #ff5733;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <button id="restartButton" onclick="restartGame()">Restart</button>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const restartButton = document.getElementById("restartButton");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const backgroundImg = new Image();
+        backgroundImg.src = "background.png";
+
+        const kucingImg = new Image();
+        kucingImg.src = "kucing.png";
+
+        const bungaImg = new Image();
+        bungaImg.src = "bunga.png";
+
+        const tanamanImg = new Image();
+        tanamanImg.src = "tanaman.png";
+
+        let kucing, rintangan, bunga, skor, gameOver, kebal, nyawaAlin, bgX, rintanganJarak, gameSpeed;
+
+        function initGame() {
+            kucing = { x: 50, y: canvas.height - 100, width: 50, height: 50, dy: 0, gravity: 0.5, jumping: false };
+            rintangan = [];
+            bunga = [];
+            skor = 0;
+            nyawaAlin = 3;
+            gameOver = false;
+            kebal = false;
+            bgX = 0;
+            rintanganJarak = 300;
+            gameSpeed = 3;
+            restartButton.style.display = "none";
+        }
+
+        function drawBackground() {
+            ctx.drawImage(backgroundImg, bgX, 0, canvas.width, canvas.height);
+            ctx.drawImage(backgroundImg, bgX + canvas.width, 0, canvas.width, canvas.height);
+        }
+
+        function drawKucing() {
+            ctx.drawImage(kucingImg, kucing.x, kucing.y, kucing.width, kucing.height);
+        }
+
+        function drawRintangan() {
+            rintangan.forEach((tanaman) => {
+                ctx.drawImage(tanamanImg, tanaman.x, tanaman.y, tanaman.width, tanaman.height);
+            });
+        }
+
+        function drawBunga() {
+            bunga.forEach((item) => {
+                if (!item.collected) {
+                    ctx.drawImage(bungaImg, item.x, item.y, item.width, item.height);
+                }
+            });
+        }
+
+        function update() {
+            if (gameOver) return;
+            
+            gameSpeed += 0.0005; 
+            bgX -= gameSpeed;
+            if (bgX <= -canvas.width) {
+                bgX = 0;
+            }
+            
+            kucing.y += kucing.dy;
+            kucing.dy += kucing.gravity;
+            
+            if (kucing.y > canvas.height - 100) {
+                kucing.y = canvas.height - 100;
+                kucing.jumping = false;
+            }
+
+            rintangan.forEach((tanaman, index) => {
+                tanaman.x -= gameSpeed;
+                if (tanaman.x + tanaman.width < 0) {
+                    rintangan.splice(index, 1);
+                    skor++;
+                }
+                if (!kebal &&
+                    kucing.x < tanaman.x + tanaman.width &&
+                    kucing.x + kucing.width > tanaman.x &&
+                    kucing.y < tanaman.y + tanaman.height &&
+                    kucing.y + kucing.height > tanaman.y
+                ) {
+                    nyawaAlin--;
+                    kebal = true;
+                    setTimeout(() => { kebal = false; }, 2000);
+                    if (nyawaAlin <= 0) {
+                        gameOver = true;
+                        restartButton.style.display = "block";
+                        alert("Good Game Sayang! Skor: " + Math.floor(skor));
+                    }
+                }
+            });
+
+            bunga.forEach((item, index) => {
+                item.x -= gameSpeed;
+                if (kucing.x < item.x + item.width &&
+                    kucing.x + kucing.width > item.x &&
+                    kucing.y < item.y + item.height &&
+                    kucing.y + kucing.height > item.y
+                ) {
+                    item.collected = true;
+                    skor += 5;
+                }
+                if (item.x + item.width < 0) {
+                    bunga.splice(index, 1);
+                }
+            });
+            
+            skor += 0.01;
+            
+            if (Math.random() < 0.005 && (rintangan.length === 0 || canvas.width - rintangan[rintangan.length - 1].x > rintanganJarak)) {
+                rintangan.push({ x: canvas.width, y: canvas.height - 100, width: 40, height: 50 });
+            }
+            
+            if (Math.random() < 0.003) {
+                bunga.push({ x: canvas.width, y: canvas.height - 120, width: 30, height: 30, collected: false });
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            drawKucing();
+            drawRintangan();
+            drawBunga();
+            ctx.fillStyle = "black";
+            ctx.fillText("Skor: " + Math.floor(skor), 10, 20);
+            ctx.fillText("Nyawa Alin: " + nyawaAlin, 10, 40);
+        }
+
+        function loop() {
+            update();
+            draw();
+            if (!gameOver) {
+                requestAnimationFrame(loop);
+            }
+        }
+
+        function restartGame() {
+            initGame();
+            loop();
+        }
+
+        document.addEventListener("keydown", (e) => {
+            if (e.code === "Space" && !kucing.jumping) {
+                kucing.dy = -11;
+                kucing.jumping = true;
+            }
+        });
+
+        initGame();
+        loop();
+    </script>
+</body>
+</html>
